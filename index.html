@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Smart EV Wireless Charging &amp; Parking Management</title>
+  <meta name="description"
+    content="AI-Powered Dynamic Wireless EV Charging and Smart Parking Management System with role-based Admin and User panels." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+
+  <!-- ======================================================== -->
+  <!-- SCREEN 0  —  ROLE SELECTION GATE                         -->
+  <!-- ======================================================== -->
+  <div class="gate-screen active" id="gateScreen">
+    <div class="gate-bg-glow"></div>
+    <div class="gate-card">
+      <div class="gate-logo">
+        <span class="material-icons-round gate-bolt">bolt</span>
+      </div>
+      <h1 class="gate-title">SmartEV Wireless Charging Portal</h1>
+      <p class="gate-sub">AI-Powered Dynamic Charging &amp; Smart Parking Management</p>
+      <div class="gate-buttons">
+        <button class="gate-btn user-gate-btn" id="gateUserBtn">
+          <span class="material-icons-round">person</span>
+          <span>User Login</span>
+        </button>
+        <button class="gate-btn admin-gate-btn" id="gateAdminBtn">
+          <span class="material-icons-round">admin_panel_settings</span>
+          <span>Admin Login</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SCREEN 1a — USER LOGIN / REGISTER                        -->
+  <!-- ======================================================== -->
+  <div class="gate-screen" id="userLoginScreen">
+    <div class="gate-bg-glow"></div>
+    <div class="gate-card login-card-form">
+      <button class="back-btn" id="userLoginBack">
+        <span class="material-icons-round">arrow_back</span> Back
+      </button>
+      <div class="gate-logo small">
+        <span class="material-icons-round gate-bolt">person</span>
+      </div>
+      <h2 class="gate-title sm">User Access</h2>
+      <p class="gate-sub">Login with your email or register a new account</p>
+      <form id="userLoginForm" autocomplete="off">
+        <div class="form-group">
+          <label for="uEmail">Email Address</label>
+          <div class="input-wrap">
+            <span class="material-icons-round input-icon">mail</span>
+            <input type="email" id="uEmail" placeholder="you@example.com" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="uPassword">Password</label>
+          <div class="input-wrap">
+            <span class="material-icons-round input-icon">lock</span>
+            <input type="password" id="uPassword" placeholder="••••••••" required />
+          </div>
+        </div>
+        <div class="login-error" id="userLoginError"></div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary">
+            <span class="material-icons-round">login</span> Login
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnUserRegister">
+            <span class="material-icons-round">person_add</span> Register New User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- SCREEN 1b — ADMIN LOGIN                                  -->
+  <!-- ======================================================== -->
+  <div class="gate-screen" id="adminLoginScreen">
+    <div class="gate-bg-glow"></div>
+    <div class="gate-card login-card-form">
+      <button class="back-btn" id="adminLoginBack">
+        <span class="material-icons-round">arrow_back</span> Back
+      </button>
+      <div class="gate-logo small">
+        <span class="material-icons-round gate-bolt">admin_panel_settings</span>
+      </div>
+      <h2 class="gate-title sm">Admin Access</h2>
+      <p class="gate-sub">Restricted area — authorized personnel only</p>
+      <form id="adminLoginForm" autocomplete="off">
+        <div class="form-group">
+          <label for="aEmail">Admin Email</label>
+          <div class="input-wrap">
+            <span class="material-icons-round input-icon">mail</span>
+            <input type="email" id="aEmail" placeholder="admin@smartev.com" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="aKey">Security Key</label>
+          <div class="input-wrap">
+            <span class="material-icons-round input-icon">vpn_key</span>
+            <input type="password" id="aKey" placeholder="Enter security key" required />
+          </div>
+        </div>
+        <div class="login-error" id="adminLoginError"></div>
+        <div class="demo-hint">
+          <span class="material-icons-round">info</span>
+          Demo: admin@smartev.com / admin123
+        </div>
+        <button type="submit" class="btn btn-primary full-w">
+          <span class="material-icons-round">login</span> Admin Login
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- OVERLAY (mobile sidebar)                                 -->
+  <!-- ======================================================== -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ======================================================== -->
+  <!-- USER PANEL                                               -->
+  <!-- ======================================================== -->
+  <div class="app-shell" id="userPanel">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="userSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="material-icons-round logo-icon">bolt</span>
+          <div><span class="logo-text">SmartEV</span><span class="logo-sub">User Panel</span></div>
+        </div>
+        <button class="sidebar-close" id="userSidebarClose"><span class="material-icons-round">close</span></button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-view="u-vehicle"><span
+            class="material-icons-round">directions_car</span> My Vehicle</a>
+        <a href="#" class="nav-item" data-view="u-book"><span class="material-icons-round">event_available</span> Book
+          Slot</a>
+        <a href="#" class="nav-item" data-view="u-charging"><span
+            class="material-icons-round">battery_charging_full</span> My Charging</a>
+        <a href="#" class="nav-item" data-view="u-history"><span class="material-icons-round">history</span> My
+          History</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">U</div>
+          <div>
+            <div class="user-name" id="userNameLabel">User</div>
+            <div class="user-email" id="userEmailLabel">user@example.com</div>
+          </div>
+        </div>
+        <button class="logout-btn" id="userLogoutBtn"><span class="material-icons-round">logout</span> Logout</button>
+      </div>
+    </aside>
+    <!-- Main -->
+    <main class="main-content">
+      <header class="top-bar">
+        <button class="hamburger" id="userHamburger"><span class="material-icons-round">menu</span></button>
+        <h1 class="top-bar-title" id="userTopTitle">My Vehicle</h1>
+        <div class="top-bar-actions">
+          <button class="icon-btn" id="userNotifBtn"><span class="material-icons-round">notifications</span><span
+              class="notif-dot"></span></button>
+        </div>
+      </header>
+
+      <!-- ===== U-VIEW: MY VEHICLE ===== -->
+      <section class="view active" id="u-vehicle">
+        <div class="view-inner">
+          <div class="section-header">
+            <span class="material-icons-round section-icon">directions_car</span>
+            <div>
+              <h2>My Vehicle</h2>
+              <p>Register or manage your EV and RFID tag</p>
+            </div>
+          </div>
+          <div class="card vehicle-reg-card">
+            <div class="vehicle-image-wrap">
+              <img src="assets/ev-car.jpg" alt="Electric Vehicle" class="vehicle-img" />
+              <span class="vehicle-badge" id="vehicleBadge">Not Linked</span>
+            </div>
+            <div class="vehicle-fields">
+              <div class="field-row">
+                <div class="form-group compact">
+                  <label for="regVehicleId">Vehicle ID</label>
+                  <div class="input-wrap"><span class="material-icons-round input-icon">tag</span><input type="text"
+                      id="regVehicleId" placeholder="e.g. EV-03" /></div>
+                </div>
+                <div class="form-group compact">
+                  <label for="regModel">Model / Type</label>
+                  <div class="input-wrap"><span class="material-icons-round input-icon">directions_car</span><input
+                      type="text" id="regModel" placeholder="e.g. Model S" /></div>
+                </div>
+              </div>
+              <div class="form-group compact">
+                <label for="regRfid">RFID Tag</label>
+                <div class="input-wrap rfid-wrap">
+                  <span class="material-icons-round input-icon">contactless</span>
+                  <input type="text" id="regRfid" placeholder="e.g. RFID-03" />
+                  <span class="rfid-status" id="rfidStatusBadge">Inactive</span>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="btnSaveVehicle"><span class="material-icons-round">save</span> Save
+                Vehicle Info</button>
+              <a href="#" class="rfid-link" id="linkRFID"><span class="material-icons-round">nfc</span> Link Physical
+                RFID Tag</a>
+            </div>
+            <div class="rfid-prompt"><span class="material-icons-round">info</span> Keep your RFID tag connected for
+              automatic slot recognition.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== U-VIEW: BOOK SLOT ===== -->
+      <section class="view" id="u-book">
+        <div class="view-inner">
+          <div class="section-header">
+            <span class="material-icons-round section-icon">event_available</span>
+            <div>
+              <h2>Book a Parking Slot</h2>
+              <p>Select an available slot and configure your charging session</p>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="card-title"><span class="material-icons-round">local_parking</span> Live Slot Availability</h3>
+            <div class="slots-row" id="userSlotPicker">
+              <!-- JS populates -->
+            </div>
+          </div>
+          <div class="booking-config-row">
+            <div class="card config-card">
+              <h3 class="card-title"><span class="material-icons-round">schedule</span> Target Departure Time</h3>
+              <div class="time-picker-wrap">
+                <input type="time" id="userDepartureTime" value="18:30" class="time-input" />
+                <span class="time-or">or</span>
+                <div class="duration-slider-wrap">
+                  <label for="userDurationSlider">Duration from now</label>
+                  <input type="range" id="userDurationSlider" min="15" max="180" value="60" step="5" class="slider" />
+                  <div class="slider-value" id="userDurationValue">60 min</div>
+                </div>
+              </div>
+            </div>
+            <div class="card config-card">
+              <h3 class="card-title"><span class="material-icons-round">battery_charging_full</span> Required SOC (%)
+              </h3>
+              <div class="soc-slider-wrap">
+                <input type="range" id="userSocSlider" min="10" max="100" value="80" step="1"
+                  class="slider soc-slider" />
+                <div class="soc-bubble" id="userSocBubble">80%</div>
+                <div class="soc-labels"><span>10%</span><span>50%</span><span>100%</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card summary-card">
+            <div class="summary-icon"><span class="material-icons-round">summarize</span></div>
+            <p class="summary-text" id="userBookingSummary">Requesting charge to <strong>80%</strong> with <strong>60
+                min</strong> departure target.</p>
+            <button class="btn btn-confirm" id="userConfirmBooking"><span
+                class="material-icons-round">check_circle</span> CONFIRM BOOKING</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== U-VIEW: MY CHARGING ===== -->
+      <section class="view" id="u-charging">
+        <div class="view-inner">
+          <div class="section-header">
+            <span class="material-icons-round section-icon">battery_charging_full</span>
+            <div>
+              <h2>My Charging</h2>
+              <p>Live status of your assigned parking slot</p>
+            </div>
+          </div>
+          <div id="userChargingContent">
+            <!-- JS populates: either the slot card or empty state -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== U-VIEW: MY HISTORY ===== -->
+      <section class="view" id="u-history">
+        <div class="view-inner">
+          <div class="section-header">
+            <span class="material-icons-round section-icon">history</span>
+            <div>
+              <h2>My History</h2>
+              <p>Past charging sessions for your account</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="logs-table-wrap">
+              <table class="logs-table" id="userLogsTable">
+                <thead>
+                  <tr>
+                    <th>Slot</th>
+                    <th>Date</th>
+                    <th>Duration</th>
+                    <th>Energy</th>
+                    <th>Peak SOC</th>
+                  </tr>
+                </thead>
+                <tbody id="userLogsTbody">
+                  <!-- JS populates -->
+                </tbody>
+              </table>
+            </div>
+            <div class="empty-state" id="userLogsEmpty" style="display:none">
+              <span class="material-icons-round">auto_graph</span>
+              <h3>No history yet</h3>
+              <p>Your completed charging sessions will appear here.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mobile bottom nav -->
+      <nav class="bottom-nav" id="userBottomNav">
+        <button class="bnav-item active" data-view="u-vehicle"><span
+            class="material-icons-round">directions_car</span><span>Vehicle</span></button>
+        <button class="bnav-item" data-view="u-book"><span
+            class="material-icons-round">event_available</span><span>Book</span></button>
+        <button class="bnav-item" data-view="u-charging"><span
+            class="material-icons-round">battery_charging_full</span><span>Charging</span></button>
+        <button class="bnav-item" data-view="u-history"><span
+            class="material-icons-round">history</span><span>History</span></button>
+      </nav>
+    </main>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- ADMIN PANEL                                              -->
+  <!-- ======================================================== -->
+  <div class="app-shell" id="adminPanel">
+    <aside class="sidebar" id="adminSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <span class="material-icons-round logo-icon">bolt</span>
+          <div><span class="logo-text">SmartEV</span><span class="logo-sub">Admin Panel</span></div>
+        </div>
+        <button class="sidebar-close" id="adminSidebarClose"><span class="material-icons-round">close</span></button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-view="a-dashboard"><span class="material-icons-round">dashboard</span>
+          All Slots Dashboard</a>
+        <a href="#" class="nav-item" data-view="a-hardware"><span class="material-icons-round">memory</span> Hardware
+          Status</a>
+        <a href="#" class="nav-item" data-view="a-analytics"><span class="material-icons-round">analytics</span> System
+          Analytics &amp; Logs</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar admin-avatar">A</div>
+          <div>
+            <div class="user-name">Administrator</div>
+            <div class="user-email" id="adminEmailLabel">admin@smartev.com</div>
+          </div>
+        </div>
+        <button class="logout-btn" id="adminLogoutBtn"><span class="material-icons-round">logout</span> Logout</button>
+      </div>
+    </aside>
+    <main class="main-content">
+      <header class="top-bar">
+        <button class="hamburger" id="adminHamburger"><span class="material-icons-round">menu</span></button>
+        <h1 class="top-bar-title" id="adminTopTitle">All Slots Dashboard</h1>
+        <div class="top-bar-actions">
+          <span class="live-chip"><span class="live-dot"></span> Live</span>
+          <button class="icon-btn" id="adminNotifBtn"><span class="material-icons-round">notifications</span><span
+              class="notif-dot"></span></button>
+        </div>
+      </header>
+
+      <!-- ===== A-VIEW: ALL SLOTS DASHBOARD ===== -->
+      <section class="view active" id="a-dashboard">
+        <div class="view-inner">
+          <div class="section-header">
+            <span class="material-icons-round section-icon">dashboard</span>
+            <div>
+              <h2>AI-Powered EV Charging Dashboard</h2>
+              <p>Real-time monitoring and intelligent charge allocation</p>
+            </div>
+          </div>
+          <div class="metrics-bar">
+            <div class="metric-chip"><span class="material-icons-round">local_parking</span> Available Slots: <strong
+                id="adminMetricSlots">1 / 3</strong></div>
+            <div class="metric-chip"><span class="material-icons-round">bolt</span> Total System Power: <strong
+                id="adminMetricPower">0.0 kW</strong></div>
+          </div>
+          <div class="admin-emergency-row">
+            <button class="btn btn-emergency" id="adminEmergencyStop"><span
+                class="material-icons-round">emergency</span> EMERGENCY STOP ALL</button>
+          </div>
+          <div class="dashboard-slots" id="adminSlotsGrid">
+            <!-- JS generates 3 slot cards -->
+          </div>
+          <!-- Alerts -->
+          <div class="card alerts-card">
+            <h3 class="card-title"><span class="material-icons-round">campaign</span> System Status</h3>
+            <ul class="alerts-list" id="adminAlertsList">
+              <li class="alert-item priority-alert"><span class="material-icons-round">priority_high</span>
+                <div><strong>System initialized</strong><small>Just now</small></div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== A-VIEW: HARDWARE STATUS ===== -->
+      <section class="view" id="a-hardware">
+        <div class="view-inner">
+          <div class="section-header">
+            <span class="material-icons-round section-icon">memory</span>
+            <div>
+              <h2>Hardware Status</h2>
+              <p>Monitor charging pads, RFID readers, and sensor arrays</p>
+            </div>
+          </div>
+          <div class="hardware-grid">
+            <div class="card hw-card">
+              <span class="material-icons-round hw-icon online">sensors</span>
+              <h4>Wireless Pad A</h4>
+              <span class="hw-status online">Online</span>
+              <p>Temp: 42°C &bull; Efficiency: 94%</p>
+            </div>
+            <div class="card hw-card">
+              <span class="material-icons-round hw-icon online">sensors</span>
+              <h4>Wireless Pad B</h4>
+              <span class="hw-status online">Online</span>
+              <p>Temp: 38°C &bull; Efficiency: 96%</p>
+            </div>
+            <div class="card hw-card">
+              <span class="material-icons-round hw-icon online">contactless</span>
+              <h4>RFID Reader</h4>
+              <span class="hw-status online">Online</span>
+              <p>Tags Detected: 3 &bull; Uptime: 99.8%</p>
+            </div>
+            <div class="card hw-card">
+              <span class="material-icons-round hw-icon warning">router</span>
+              <h4>ESP32 Gateway</h4>
+              <span class="hw-status warning">Warning</span>
+              <p>Signal: -68 dBm &bull; Reconnecting…</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== A-VIEW: SYSTEM ANALYTICS & LOGS ===== -->
+      <section class="view" id="a-analytics">
+        <div class="view-inner">
+          <div class="section-header">
+            <span class="material-icons-round section-icon">analytics</span>
+            <div>
+              <h2>System Analytics &amp; Logs</h2>
+              <p>Power trends, charging history, and system events</p>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <h3 class="card-title"><span class="material-icons-round">show_chart</span> Power Consumption Trends</h3>
+            <div class="chart-container"><canvas id="adminPowerChart"></canvas></div>
+          </div>
+          <div class="card logs-card">
+            <h3 class="card-title"><span class="material-icons-round">receipt_long</span> All Charging Logs</h3>
+            <div class="logs-table-wrap">
+              <table class="logs-table" id="adminLogsTable">
+                <thead>
+                  <tr>
+                    <th>EV ID</th>
+                    <th>Slot</th>
+                    <th>User</th>
+                    <th>Duration</th>
+                    <th>Energy</th>
+                  </tr>
+                </thead>
+                <tbody id="adminLogsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <nav class="bottom-nav" id="adminBottomNav">
+        <button class="bnav-item active" data-view="a-dashboard"><span
+            class="material-icons-round">dashboard</span><span>Dashboard</span></button>
+        <button class="bnav-item" data-view="a-hardware"><span
+            class="material-icons-round">memory</span><span>Hardware</span></button>
+        <button class="bnav-item" data-view="a-analytics"><span
+            class="material-icons-round">analytics</span><span>Analytics</span></button>
+      </nav>
+    </main>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
