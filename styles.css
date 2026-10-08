@@ -654,3 +654,194 @@ a{color:var(--c-secondary);text-decoration:none}
   .time-picker-wrap{flex-direction:column}
   .metrics-bar{flex-direction:column}
 }
+
+/* ============================================================
+   LIVE CLOCK & REAL-TIME DEPARTURE STYLES
+   ============================================================ */
+.live-clock-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(222, 184, 135, 0.15), rgba(139, 69, 19, 0.05));
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+}
+.live-clock-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--c-text-muted);
+}
+.live-clock-label .material-icons-round {
+  color: var(--c-primary);
+  font-size: 20px;
+}
+.live-clock-val {
+  font-family: monospace;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--c-primary);
+  letter-spacing: 0.5px;
+}
+.departure-target-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(160, 82, 45, 0.08);
+  border: 1px solid rgba(160, 82, 45, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--c-secondary);
+}
+.departure-target-badge .material-icons-round {
+  font-size: 19px;
+  color: var(--c-secondary);
+}
+
+/* ============================================================
+   SLOT 3 & SMART PARKING STYLES
+   ============================================================ */
+.soc-notice-box {
+  padding: 16px;
+  background: rgba(222, 184, 135, 0.14);
+  border: 1.5px dashed var(--c-secondary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 8px;
+}
+.soc-notice-box .material-icons-round {
+  color: var(--c-secondary);
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.soc-notice-box strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--c-primary);
+  margin-bottom: 4px;
+}
+.soc-notice-box p {
+  font-size: 0.82rem;
+  color: var(--c-text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.slot-badge-type {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-top: 2px;
+  text-align: center;
+}
+.slot-badge-type.charge {
+  background: rgba(212, 168, 67, 0.18);
+  color: var(--c-primary);
+  border: 1px solid rgba(212, 168, 67, 0.35);
+}
+.slot-badge-type.parking {
+  background: rgba(122, 101, 85, 0.12);
+  color: var(--c-text-muted);
+  border: 1px solid rgba(122, 101, 85, 0.25);
+}
+
+.no-coil-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: rgba(122, 101, 85, 0.18);
+  color: #7A6555;
+  border: 1px solid rgba(122, 101, 85, 0.3);
+}
+
+.slot-btn.parking-bay-btn {
+  border-color: #D6C7B8;
+  background: linear-gradient(135deg, rgba(222, 184, 135, 0.08), rgba(245, 240, 235, 0.6));
+}
+.slot-btn.parking-bay-btn.selected {
+  border-color: var(--c-secondary);
+  background: linear-gradient(135deg, rgba(222, 184, 135, 0.25), rgba(160, 82, 45, 0.08));
+}
+.slot-parking-only-icon {
+  color: #8C7362 !important;
+}
+
+/* User Dedicated Parking Session Card */
+.parking-only-card {
+  border-color: var(--c-accent) !important;
+}
+.parking-only-header {
+  background: linear-gradient(135deg, #4A3323, #2D1910) !important;
+}
+.parking-countdown-wrap {
+  text-align: center;
+  padding: 24px 16px;
+  background: linear-gradient(135deg, rgba(222, 184, 135, 0.12), rgba(139, 69, 19, 0.04));
+  border: 1.5px solid rgba(222, 184, 135, 0.45);
+  border-radius: var(--radius-sm);
+  margin: 16px 0;
+}
+.parking-countdown-digits {
+  font-family: monospace;
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: var(--c-primary);
+  letter-spacing: 1.5px;
+}
+.parking-countdown-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  margin-top: 6px;
+  letter-spacing: 0.5px;
+}
+.parking-session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(46, 125, 50, 0.12);
+  border: 1px solid rgba(46, 125, 50, 0.3);
+  border-radius: 20px;
+  color: var(--c-green);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+/* Admin Disabled Coil Button */
+.btn-coil-disabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px;
+  background: rgba(122, 101, 85, 0.08);
+  border: 1.5px dashed rgba(122, 101, 85, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--c-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: not-allowed;
+  user-select: none;
+}
+
