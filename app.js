@@ -25,11 +25,16 @@
   /* ============================================================
      STATE
      ============================================================ */
-  let session   = null;   // { role: 'user'|'admin', email: string }
-  let slots     = [];     // mutable copy of slot data
+  let session    = null;   // { role: 'user'|'admin', email: string }
+  let slots      = [];     // mutable copy of slot data
   let simRunning = true;
   let powerChart = null;
   let chartTick  = 0;
+
+  // Track whether navigation has been wired for each panel
+  // to prevent duplicate event listeners on re-entry
+  let userNavWired  = false;
+  let adminNavWired = false;
 
   /* ============================================================
      DOM HELPERS
@@ -120,12 +125,12 @@
     if (titleEl) titleEl.textContent = viewTitles[viewId] || '';
     closeSidebars();
 
-    // Hooks
+    // Hooks — render content for the active view
     if (viewId === 'u-charging') renderUserCharging();
     if (viewId === 'u-book') renderUserSlotPicker();
     if (viewId === 'u-history') renderUserHistory();
     if (viewId === 'a-dashboard') { renderAdminDashboard(); initAdminChart(); }
-    if (viewId === 'a-analytics') initAdminChart();
+    if (viewId === 'a-analytics') { initAdminChart(); renderAdminLogs(); }
   }
 
   function wireNavigation(panel, prefix) {
@@ -220,7 +225,11 @@
      ============================================================ */
   function enterUserPanel() {
     showPanel('userPanel');
-    wireNavigation($('userPanel'), 'u');
+    // Wire navigation only once to prevent duplicate listeners
+    if (!userNavWired) {
+      wireNavigation($('userPanel'), 'u');
+      userNavWired = true;
+    }
     const ud = getOrCreateUser(session.email);
     $('userAvatar').textContent = session.email.charAt(0).toUpperCase();
     $('userNameLabel').textContent = session.email.split('@')[0];
@@ -231,7 +240,11 @@
 
   function enterAdminPanel() {
     showPanel('adminPanel');
-    wireNavigation($('adminPanel'), 'a');
+    // Wire navigation only once to prevent duplicate listeners
+    if (!adminNavWired) {
+      wireNavigation($('adminPanel'), 'a');
+      adminNavWired = true;
+    }
     $('adminEmailLabel').textContent = session.email;
     switchView('a-dashboard', 'a');
   }
@@ -289,23 +302,41 @@
 
   /* ============================================================
      USER — SLOT BOOKING
+     PRIVACY RULE: User sees only AVAILABLE slots — occupied slots
+     show as "Unavailable" without revealing the other user's info.
      ============================================================ */
   let selectedSlot = null;
 
   function renderUserSlotPicker() {
     const container = $('userSlotPicker');
     container.innerHTML = '';
-    slots.forEach((s, i) => {
+
+    // If user already has a booked slot, show a message instead
+    if (session && session.role === 'user') {
+      const existingSlot = slots.find(s => s.userEmail === session.email);
+      if (existingSlot) {
+        container.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--c-text-muted);">
+            <span class="material-icons-round" style="font-size:40px;color:var(--c-accent);display:block;margin-bottom:8px;">event_busy</span>
+            <h3 style="font-size:1.05rem;color:var(--c-text);margin-bottom:4px;">Slot Already Booked</h3>
+            <p style="font-size:.88rem;">You have Slot ${existingSlot.id} booked. Go to <strong>"My Charging"</strong> to view status.</p>
+          </div>`;
+        return;
+      }
+    }
+
+    slots.forEach(s => {
       const btn = document.createElement('button');
       btn.className = 'slot-btn';
       if (s.occupied) {
+        // PRIVACY: Show as "Unavailable" — do NOT reveal the EV ID or user info
         btn.classList.add('occupied');
         btn.disabled = true;
         btn.innerHTML = `
           <div class="slot-num">Slot ${s.id}</div>
           <span class="material-icons-round slot-car-icon">directions_car</span>
-          <div class="slot-status">Occupied</div>
-          <div class="slot-ev-label">${s.evId || '—'}</div>`;
+          <div class="slot-status">Unavailable</div>
+          <div class="slot-ev-label">—</div>`;
       } else {
         btn.classList.add('available');
         btn.innerHTML = `
@@ -348,7 +379,7 @@
     uSocBubble.style.left = `calc(${pct}% + ${(8 - pct * 0.16)}px)`;
     updateUserBookingSummary();
   });
-  // init bubble
+  // init bubble position
   (function () {
     const v = uSocSlider.value;
     const pct = (v - 10) / 90 * 100;
@@ -395,6 +426,8 @@
 
   /* ============================================================
      USER — MY CHARGING (single slot only)
+     PRIVACY RULE: Only shows the slot assigned to THIS user.
+     If no slot booked, shows an empty state.
      ============================================================ */
   function renderUserCharging() {
     const container = $('userChargingContent');
@@ -415,8 +448,18 @@
       return;
     }
 
-    const statusClass = mySlot.charging ? 'on' : 'off-badge';
-    const statusText  = mySlot.charging ? 'Active' : 'Off';
+    // Determine charging status text & class
+    let statusText, statusClass;
+    if (mySlot.charging && mySlot.soc < 30) {
+      statusText = 'Active'; statusClass = 'active-glow';
+    } else if (mySlot.charging) {
+      statusText = 'Active'; statusClass = 'on';
+    } else if (mySlot.soc >= mySlot.targetSoc) {
+      statusText = 'Complete'; statusClass = 'on';
+    } else {
+      statusText = 'Off'; statusClass = 'off-badge';
+    }
+
     const pBadge = priorityBadgeHTML(mySlot.priority);
     const barClass = mySlot.soc < 30 ? 'low-fill' : '';
 
@@ -470,7 +513,7 @@
   }
 
   /* ============================================================
-     USER — HISTORY
+     USER — HISTORY (filtered strictly for this logged-in email)
      ============================================================ */
   function renderUserHistory() {
     if (!session || session.role !== 'user') return;
@@ -492,6 +535,7 @@
 
   /* ============================================================
      ADMIN — ALL SLOTS DASHBOARD
+     Shows all 3 physical parking slots simultaneously.
      ============================================================ */
   function renderAdminDashboard() {
     const grid = $('adminSlotsGrid');
@@ -564,7 +608,7 @@
       }
     });
 
-    // Admin stop buttons
+    // Admin stop/start buttons for individual slots
     grid.querySelectorAll('[data-admin-stop]').forEach(btn => {
       btn.addEventListener('click', () => {
         const sid = parseInt(btn.dataset.adminStop);
@@ -723,7 +767,7 @@
         const logEntry = { slot: s.id, evId: s.evId, user: s.userEmail, date: new Date().toLocaleDateString(), duration: dur, energy, peakSoc: Math.round(s.soc) };
         // Global log
         const gLogs = loadGlobalLogs(); gLogs.push(logEntry); saveGlobalLogs(gLogs);
-        // User log
+        // User log (filtered by email — stored under their key)
         if (s.userEmail) {
           const ud = getOrCreateUser(s.userEmail);
           ud.logs.push(logEntry);
@@ -775,8 +819,15 @@
     if (card) {
       const sBadge = card.querySelector('.status-badge');
       if (sBadge) {
-        sBadge.textContent = mySlot.charging ? 'Active' : 'Off';
-        sBadge.className = `status-badge ${mySlot.charging ? 'on' : 'off-badge'}`;
+        if (mySlot.charging && mySlot.soc < 30) {
+          sBadge.textContent = 'Active'; sBadge.className = 'status-badge active-glow';
+        } else if (mySlot.charging) {
+          sBadge.textContent = 'Active'; sBadge.className = 'status-badge on';
+        } else if (mySlot.soc >= mySlot.targetSoc) {
+          sBadge.textContent = 'Complete'; sBadge.className = 'status-badge on';
+        } else {
+          sBadge.textContent = 'Off'; sBadge.className = 'status-badge off-badge';
+        }
       }
     }
   }
@@ -840,7 +891,7 @@
     addAdminAlert(a.msg, a.cls, a.icon);
   }, 15000);
 
-  /* Periodic admin log injection */
+  /* Periodic admin log refresh */
   setInterval(() => {
     if (!session || session.role !== 'admin') return;
     renderAdminLogs();
@@ -860,7 +911,7 @@
     slots = loadSlots() || JSON.parse(JSON.stringify(DEFAULT_SLOTS));
     saveSlots();
 
-    // Restore session
+    // Restore session (state persistence across browser refresh)
     session = loadSession();
     if (session) {
       if (session.role === 'user') {
