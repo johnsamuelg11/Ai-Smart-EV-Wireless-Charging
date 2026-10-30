@@ -677,9 +677,9 @@
     }
   }
 
-  // Confirm booking
+  // Confirm booking — async to support FastAPI ML priority fetch
   if ($('userConfirmBooking')) {
-    $('userConfirmBooking').addEventListener('click', () => {
+    $('userConfirmBooking').addEventListener('click', async () => {
       if (!session || session.role !== 'user') return;
       const ud = getOrCreateUser(session.email);
       if (!ud.vehicleId) { showToast('Please set up your vehicle ID first in "My Vehicle".', 'error'); return; }
@@ -692,51 +692,105 @@
       const slot = slots.find(s => s.id === selectedSlot);
       if (!slot || slot.occupied) { showToast('Slot is no longer available.', 'error'); return; }
 
-      const durMins = parseInt(uDurSlider.value) || 60;
+      const durMins        = parseInt(uDurSlider.value) || 60;
       const targetTimestamp = Date.now() + durMins * 60 * 1000;
-      const targetDate = new Date(targetTimestamp);
-      const formattedShort = formatTimeShort(targetDate);
+      const targetDate      = new Date(targetTimestamp);
+      const formattedShort  = formatTimeShort(targetDate);
 
-      slot.occupied = true;
-      slot.evId = ud.vehicleId;
-      slot.userEmail = session.email;
-      slot.bookedAt = Date.now();
-      slot.durationMinutes = durMins;
+      slot.occupied          = true;
+      slot.evId              = ud.vehicleId;
+      slot.userEmail         = session.email;
+      slot.bookedAt          = Date.now();
+      slot.durationMinutes   = durMins;
       slot.departureTimestamp = targetTimestamp;
       slot.departureFormatted = formattedShort;
-      slot.departureTime = uDepTimeInput.value || format24hTime(targetDate);
+      slot.departureTime     = uDepTimeInput.value || format24hTime(targetDate);
 
+      /* ----------------------------------------------------------------
+         PARKING-ONLY EXCEPTION — Slot 3
+         Bypass /api/predict_priority entirely; no charging coil installed.
+      ---------------------------------------------------------------- */
       if (slot.id === 3) {
-        // Slot 3: SMART PARKING ONLY (No charging coil, 0 W)
-        slot.soc = 0;
+        slot.soc       = 0;
         slot.targetSoc = 0;
-        slot.power = 0;
-        slot.priority = 0;
-        slot.charging = false;
+        slot.power     = 0;   // powerWatts = 0.0 (no coil)
+        slot.priority  = 0;   // priorityScore = 0.0
+        slot.charging  = false;
+
       } else {
-        // Slot 1 & Slot 2: EV Wireless Charging
-        slot.soc = Math.floor(Math.random() * 15) + 10;
-        slot.targetSoc = parseInt(uSocSlider.value) || 80;
-        slot.power = 0;
-        slot.priority = 0;
-        slot.charging = true;
+        /* --------------------------------------------------------------
+           CHARGING SLOTS 1 & 2
+           Set initial telemetry, then request ML priority from FastAPI.
+        -------------------------------------------------------------- */
+        const initialSoc  = Math.floor(Math.random() * 15) + 10;
+        const requiredSoc = parseInt(uSocSlider.value) || 80;
+
+        slot.soc       = initialSoc;
+        slot.targetSoc = requiredSoc;
+        slot.charging  = true;
+
+        // Defaults used as fallback if server is unreachable
+        let powerWatts    = 3300;   // conservative fallback power (W)
+        let priorityScore = parseFloat(
+          ((requiredSoc - initialSoc) / durMins * 10).toFixed(2)
+        );
+
+        /* --------------------------------------------------------------
+           FASTAPI ML PREDICTION — /api/predict_priority
+        -------------------------------------------------------------- */
+        try {
+          const payload = {
+            slot_id:           slot.id,
+            ev_id:             ud.vehicleId,
+            rfid_uid:          ud.rfid || '',
+            current_soc:       25.0,          // default initial battery telemetry
+            required_soc:      requiredSoc,
+            waiting_time_mins: 5.0,
+            departure_minutes: durMins,
+            available_energy:  85.0,
+          };
+
+          const response = await fetch('http://127.0.0.1:8000/api/predict_priority', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload),
+          });
+
+          if (response.ok) {
+            const apiResult   = await response.json();
+            priorityScore     = apiResult.priority_score ?? priorityScore;
+            powerWatts        = apiResult.power_watts    ?? powerWatts;
+            console.info('[SmartEV] ML prediction received — priority_score:', priorityScore, '| power_watts:', powerWatts);
+          } else {
+            console.warn('[SmartEV] FastAPI returned non-OK status:', response.status, '— using fallback values.');
+          }
+        } catch (err) {
+          console.warn('[SmartEV] FastAPI server unreachable. Falling back to calculated priority score.', err.message);
+        }
+
+        slot.power         = powerWatts;
+        slot.priority      = priorityScore;
+        slot.priorityScore = priorityScore; // store real ML prediction in session object
       }
+
       saveSlots();
 
       const btn = $('userConfirmBooking');
-      btn.innerHTML = '<span class="material-icons-round">check_circle</span> BOOKING CONFIRMED';
-      btn.style.background = 'linear-gradient(135deg,#2E7D32,#1B5E20)';
-      btn.style.borderColor = '#66BB6A';
+      btn.innerHTML       = '<span class="material-icons-round">check_circle</span> BOOKING CONFIRMED';
+      btn.style.background   = 'linear-gradient(135deg,#2E7D32,#1B5E20)';
+      btn.style.borderColor  = '#66BB6A';
       btn.style.pointerEvents = 'none';
 
       const successNotice = slot.id === 3
         ? 'Slot 3 (Smart Parking Only) reserved successfully!'
-        : `Slot ${slot.id} (EV Wireless Charging) booked! Wireless charging will begin.`;
+        : `Slot ${slot.id} (EV Wireless Charging) booked! AI priority score: ${slot.priorityScore ?? slot.priority}`;
       showToast(successNotice, 'success');
 
       setTimeout(() => {
-        btn.innerHTML = '<span class="material-icons-round">check_circle</span> CONFIRM BOOKING';
-        btn.style.background = ''; btn.style.borderColor = ''; btn.style.pointerEvents = '';
+        btn.innerHTML       = '<span class="material-icons-round">check_circle</span> CONFIRM BOOKING';
+        btn.style.background   = '';
+        btn.style.borderColor  = '';
+        btn.style.pointerEvents = '';
         switchView('u-charging', 'u');
       }, 1500);
     });
